@@ -29,6 +29,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.MediaItem
+import androidx.media3.ui.PlayerView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -83,11 +87,20 @@ private fun YinnMotionApp(activity: ComponentActivity) {
     val assets = remember { mutableStateListOf<Pair<String, Uri>>() }
 
     val mediaPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        uris.forEach { assets.add("Media" to it) }
+        uris.forEach { uri ->
+            val mime = activity.contentResolver.getType(uri).orEmpty()
+            val kind = if (mime.startsWith("video/")) "Video" else "Image"
+            assets.add(kind to uri)
+            runCatching { activity.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        }
         if (uris.isNotEmpty()) notice = "${uris.size} media file(s) imported"
     }
     val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) { assets.add("Audio" to uri); notice = "Audio imported" }
+        if (uri != null) {
+            assets.add("Audio" to uri)
+            runCatching { activity.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            notice = "Audio imported"
+        }
     }
 
     MaterialTheme(colorScheme = if (appearance == "light") lightColorScheme(primary = blue, background = bg, surface = panel) else darkColorScheme(primary = blue, background = bg, surface = panel)) {
@@ -193,34 +206,72 @@ private fun QuickTile(title: String, icon: androidx.compose.ui.graphics.vector.I
 
 @Composable
 private fun EditorScreen(assets: List<Pair<String, Uri>>, media: () -> Unit, audio: () -> Unit, code: () -> Unit) {
+    val context = LocalContext.current
+    val playable = assets.firstOrNull { it.first == "Video" || it.first == "Audio" }
+    val player = remember(playable?.second) {
+        ExoPlayer.Builder(context).build().apply {
+            if (playable != null) { setMediaItem(MediaItem.fromUri(playable.second)); prepare() }
+        }
+    }
+    DisposableEffect(player) { onDispose { player.release() } }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { Text("Studio editor", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = Color.White) }
         item {
-            Box(Modifier.fillMaxWidth().height(260.dp).background(Color.Black, RoundedCornerShape(18.dp)), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.PlayCircle, null, tint = blue, modifier = Modifier.size(54.dp))
-                    Text("Preview canvas", color = Color.White)
-                    Text("Portrait · 1080 × 1920", color = muted, fontSize = 12.sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Studio", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = foreground)
+                    Text("Timeline editor", color = muted, fontSize = 13.sp)
+                }
+                Text("9:16", color = blue, fontWeight = FontWeight.Bold)
+            }
+        }
+        item {
+            Surface(color = Color.Black, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth().height(270.dp)) {
+                if (playable != null) {
+                    AndroidView(factory = { viewContext -> PlayerView(viewContext).apply { this.player = player; useController = true } }, modifier = Modifier.fillMaxSize(), update = { it.player = player })
+                } else {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Movie, null, tint = Color(0xFF9BD5FF), modifier = Modifier.size(52.dp))
+                            Text("Preview canvas", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text("Import a video to preview it here", color = Color.LightGray, fontSize = 12.sp)
+                        }
+                    }
                 }
             }
         }
-        item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = media, modifier = Modifier.weight(1f)) { Icon(Icons.Default.VideoLibrary, null); Text("Media") }
-            OutlinedButton(onClick = audio, modifier = Modifier.weight(1f)) { Icon(Icons.Default.MusicNote, null); Text("Audio") }
-        } }
-        item { Button(onClick = code, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Code, null); Text("Open Code Motion") } }
-        item { Text("TIMELINE · ${assets.size} ASSETS", color = muted, fontSize = 11.sp, letterSpacing = 2.sp) }
-        if (assets.isEmpty()) item { Text("Import video, image or audio to begin.", color = muted) }
-        items(assets) { asset ->
-            Surface(color = panel, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(if (asset.first == "Audio") Icons.Default.AudioFile else Icons.Default.Movie, null, tint = blue)
-                    Spacer(Modifier.width(10.dp))
-                    Column { Text(asset.first, color = Color.White); Text(asset.second.lastPathSegment ?: "Imported file", color = muted, fontSize = 11.sp) }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = media, modifier = Modifier.weight(1f)) { Icon(Icons.Default.VideoLibrary, null); Spacer(Modifier.width(5.dp)); Text("Import media") }
+                OutlinedButton(onClick = audio, modifier = Modifier.weight(1f)) { Icon(Icons.Default.MusicNote, null); Spacer(Modifier.width(5.dp)); Text("Audio") }
+            }
+        }
+        item {
+            Surface(color = panel, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("TIMELINE", color = blue, fontSize = 11.sp, letterSpacing = 2.sp, modifier = Modifier.weight(1f))
+                        Text("\${assets.size} clips", color = muted, fontSize = 11.sp)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("Media", "Audio", "Text", "Effects").forEach { tool ->
+                            Surface(color = Color(0xFF20364D), shape = RoundedCornerShape(10.dp)) { Text(tool, color = Color(0xFFB9E1FF), fontSize = 11.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)) }
+                        }
+                    }
+                    if (assets.isEmpty()) Text("Import media to create your first track.", color = muted, fontSize = 12.sp)
+                    assets.forEachIndexed { index, asset ->
+                        Row(Modifier.fillMaxWidth().background(Color(0xFF101722), RoundedCornerShape(10.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("\${index + 1}", color = blue, fontSize = 11.sp)
+                            Spacer(Modifier.width(10.dp))
+                            Icon(when(asset.first) { "Audio" -> Icons.Default.AudioFile; "Image" -> Icons.Default.Image; else -> Icons.Default.Movie }, null, tint = blue)
+                            Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) { Text(asset.first, color = foreground, fontSize = 13.sp); Text(asset.second.lastPathSegment ?: "Imported file", color = muted, fontSize = 10.sp, maxLines = 1) }
+                        }
+                    }
                 }
             }
         }
-        item { Text("MP4 rendering pipeline is being integrated.", color = muted, fontSize = 12.sp) }
+        item { OutlinedButton(onClick = code, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Code, null); Text("Open Code Motion") } }
+        item { Text("Preview supports imported video/audio playback. Multi-track editing, effects and MP4 export are still under development.", color = muted, fontSize = 11.sp) }
     }
 }
 
