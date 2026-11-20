@@ -12,8 +12,8 @@ android {
         applicationId = "com.yinndev.yinnmotion"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     // Publish two device-specific APKs plus one universal APK.
@@ -28,7 +28,9 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
+            // Temporary installable CI build; replace with a private release keystore before public store distribution.
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
