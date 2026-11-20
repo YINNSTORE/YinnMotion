@@ -193,33 +193,63 @@ private fun QuickTile(title: String, icon: androidx.compose.ui.graphics.vector.I
 @Composable
 private fun EditorScreen(assets: List<Pair<String, Uri>>, media: () -> Unit, audio: () -> Unit, code: () -> Unit) {
     val context = LocalContext.current
-    val playable = assets.firstOrNull { it.first == "Video" || it.first == "Audio" }
+    val clips = remember { mutableStateListOf<Pair<String, Uri>>().apply { addAll(assets) } }
+    LaunchedEffect(assets.size) { assets.forEach { if (it !in clips) clips.add(it) } }
+    var selected by remember { mutableIntStateOf(0) }
+    var exportState by remember { mutableStateOf("") }
+    var exporting by remember { mutableStateOf(false) }
+    val selectedClip = clips.getOrNull(selected)
+    val playable = selectedClip?.takeIf { it.first == "Video" || it.first == "Audio" }
     val player = remember(playable?.second) {
-        ExoPlayer.Builder(context).build().apply {
-            if (playable != null) { setMediaItem(MediaItem.fromUri(playable.second)); prepare() }
-        }
+        ExoPlayer.Builder(context).build().apply { if (playable != null) { setMediaItem(MediaItem.fromUri(playable.second)); prepare() } }
     }
     DisposableEffect(player) { onDispose { player.release() } }
+    fun exportSelectedVideo() {
+        val clip = selectedClip
+        if (clip == null || clip.first != "Video") { exportState = "Pilih klip video terlebih dahulu."; return }
+        val outputDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_MOVIES)
+        if (outputDir == null) { exportState = "Folder output tidak tersedia."; return }
+        val output = java.io.File(outputDir, "YinnMotion_${System.currentTimeMillis()}.mp4")
+        exporting = true
+        exportState = "Menyiapkan export MP4…"
+        val listener = object : Transformer.Listener {
+            override fun onCompleted(composition: Composition, result: ExportResult) {
+                exporting = false
+                exportState = "Export selesai: ${output.absolutePath}"
+            }
+            override fun onError(composition: Composition, result: ExportResult, exception: ExportException) {
+                exporting = false
+                exportState = "Export gagal: ${exception.message ?: "format tidak didukung"}"
+            }
+        }
+        try {
+            val edited = EditedMediaItem.Builder(MediaItem.fromUri(clip.second)).build()
+            Transformer.Builder(context).addListener(listener).build().start(edited, output.absolutePath)
+        } catch (error: Exception) {
+            exporting = false
+            exportState = "Export gagal: ${error.message ?: "kesalahan tidak diketahui"}"
+        }
+    }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Studio", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = foreground)
-                    Text("Timeline editor", color = muted, fontSize = 13.sp)
+                    Text("Editor workspace • ${clips.size} clips", color = muted, fontSize = 13.sp)
                 }
                 Text("9:16", color = blue, fontWeight = FontWeight.Bold)
             }
         }
         item {
-            Surface(color = Color.Black, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth().height(270.dp)) {
+            Surface(color = Color.Black, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth().height(250.dp)) {
                 if (playable != null) {
                     AndroidView(factory = { viewContext -> PlayerView(viewContext).apply { this.player = player; useController = true } }, modifier = Modifier.fillMaxSize(), update = { it.player = player })
                 } else {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.Movie, null, tint = Color(0xFF9BD5FF), modifier = Modifier.size(52.dp))
-                            Text("Preview canvas", color = Color.White, fontWeight = FontWeight.SemiBold)
-                            Text("Import a video to preview it here", color = Color.LightGray, fontSize = 12.sp)
+                            Text(if (selectedClip?.first == "Image") "Image layer selected" else "Preview canvas", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text(selectedClip?.second?.lastPathSegment ?: "Import a video to preview it here", color = Color.LightGray, fontSize = 12.sp, maxLines = 1)
                         }
                     }
                 }
@@ -236,31 +266,40 @@ private fun EditorScreen(assets: List<Pair<String, Uri>>, media: () -> Unit, aud
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("TIMELINE", color = blue, fontSize = 11.sp, letterSpacing = 2.sp, modifier = Modifier.weight(1f))
-                        Text("\${assets.size} clips", color = muted, fontSize = 11.sp)
+                        Text("${clips.size} clips", color = muted, fontSize = 11.sp)
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("Media", "Audio", "Text", "Effects").forEach { tool ->
-                            Surface(color = Color(0xFF20364D), shape = RoundedCornerShape(10.dp)) { Text(tool, color = Color(0xFFB9E1FF), fontSize = 11.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)) }
-                        }
-                    }
-                    if (assets.isEmpty()) Text("Import media to create your first track.", color = muted, fontSize = 12.sp)
-                    assets.forEachIndexed { index, asset ->
-                        Row(Modifier.fillMaxWidth().background(Color(0xFF101722), RoundedCornerShape(10.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("\${index + 1}", color = blue, fontSize = 11.sp)
-                            Spacer(Modifier.width(10.dp))
-                            Icon(when(asset.first) { "Audio" -> Icons.Default.AudioFile; "Image" -> Icons.Default.Image; else -> Icons.Default.Movie }, null, tint = blue)
-                            Spacer(Modifier.width(8.dp))
-                            Column(Modifier.weight(1f)) { Text(asset.first, color = foreground, fontSize = 13.sp); Text(asset.second.lastPathSegment ?: "Imported file", color = muted, fontSize = 10.sp, maxLines = 1) }
+                    if (clips.isEmpty()) Text("Import media to create your first track.", color = muted, fontSize = 12.sp)
+                    clips.forEachIndexed { index, asset ->
+                        Surface(color = if (selected == index) Color(0xFF25496A) else Color(0xFF101722), shape = RoundedCornerShape(11.dp), modifier = Modifier.fillMaxWidth().clickable { selected = index }) {
+                            Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("${index + 1}", color = blue, fontSize = 11.sp)
+                                Spacer(Modifier.width(8.dp))
+                                Icon(when(asset.first) { "Audio" -> Icons.Default.AudioFile; "Image" -> Icons.Default.Image; else -> Icons.Default.Movie }, null, tint = blue)
+                                Spacer(Modifier.width(8.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(asset.first, color = foreground, fontSize = 13.sp)
+                                    Text(asset.second.lastPathSegment ?: "Imported file", color = muted, fontSize = 10.sp, maxLines = 1)
+                                }
+                                IconButton(onClick = { if (index > 0) { val item = clips.removeAt(index); clips.add(index - 1, item); selected = index - 1 } }, enabled = index > 0) { Icon(Icons.Default.KeyboardArrowUp, "Move up", tint = foreground) }
+                                IconButton(onClick = { clips.removeAt(index); selected = (selected - 1).coerceAtLeast(0) }) { Icon(Icons.Default.DeleteOutline, "Remove", tint = Color(0xFFFF8C8C)) }
+                            }
                         }
                     }
                 }
             }
         }
+        item {
+            Button(onClick = ::exportSelectedVideo, enabled = !exporting && selectedClip?.first == "Video", modifier = Modifier.fillMaxWidth()) {
+                if (exporting) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Icon(Icons.Default.FileUpload, null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (exporting) "Exporting MP4…" else "Export selected video to MP4")
+            }
+            if (exportState.isNotBlank()) Text(exportState, color = muted, fontSize = 11.sp)
+        }
         item { OutlinedButton(onClick = code, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Code, null); Text("Open Code Motion") } }
-        item { Text("Preview supports imported video/audio playback. Multi-track editing, effects and MP4 export are still under development.", color = muted, fontSize = 11.sp) }
+        item { Text("Current export renders the selected source video to MP4. Multi-layer compositing, trimming, effects and animated text are not yet part of this renderer.", color = muted, fontSize = 11.sp) }
     }
 }
-
 @Composable
 private fun CodeScreen(tab: String, setTab: (String) -> Unit, html: String, setHtml: (String) -> Unit, css: String, setCss: (String) -> Unit, js: String, setJs: (String) -> Unit) {
     val code = when (tab) { "CSS" -> css; "JavaScript" -> js; else -> html }
