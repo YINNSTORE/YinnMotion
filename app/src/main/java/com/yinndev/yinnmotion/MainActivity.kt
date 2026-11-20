@@ -80,7 +80,7 @@ private fun YinnMotionApp(activity: ComponentActivity) {
         if (uri != null) { assets.add("Audio" to uri); notice = "Audio imported" }
     }
 
-    MaterialTheme(colorScheme = darkColorScheme(primary = blue, background = bg, surface = panel)) {
+    MaterialTheme(colorScheme = if (appearance == "light") lightColorScheme(primary = blue, background = bg, surface = panel) else darkColorScheme(primary = blue, background = bg, surface = panel)) {
         Scaffold(containerColor = bg, bottomBar = {
             NavigationBar(containerColor = panel) {
                 listOf("Home" to Icons.Default.Home, "Editor" to Icons.Default.Movie, "Code" to Icons.Default.Code, "Settings" to Icons.Default.Settings, "About" to Icons.Default.Info).forEach { (label, icon) ->
