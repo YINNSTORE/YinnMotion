@@ -130,9 +130,9 @@ private fun YinnMotionApp(activity: ComponentActivity) {
             Box(Modifier.fillMaxWidth().padding(bottom = 12.dp), contentAlignment = Alignment.Center) {
                 Surface(color = Color(0xDD182333), shape = RoundedCornerShape(28.dp), border = BorderStroke(1.dp, Color(0x557CCBFF)), shadowElevation = 18.dp, modifier = Modifier.fillMaxWidth(0.94f).height(76.dp)) {
                     Row(Modifier.fillMaxSize().padding(6.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                        listOf("Home" to Icons.Default.Home, "Editor" to Icons.Default.Movie, "Code" to Icons.Default.Code, "Settings" to Icons.Default.Settings, "About" to Icons.Default.Info).forEach { (label, icon) ->
-                            val selected = page == label
-                            Column(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(21.dp)).background(if (selected) Color(0x553D8DCE) else Color.Transparent).clickable { page = label }.padding(vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        listOf(Triple(if (language == "id") "Beranda" else "Home", "Home", Icons.Default.Home), Triple("Editor", "Editor", Icons.Default.Movie), Triple(if (language == "id") "Kode" else "Code", "Code", Icons.Default.Code), Triple(if (language == "id") "Setelan" else "Settings", "Settings", Icons.Default.Settings), Triple(if (language == "id") "Tentang" else "About", "About", Icons.Default.Info)).forEach { (label, key, icon) ->
+                            val selected = page == key
+                            Column(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(21.dp)).background(if (selected) Color(0x553D8DCE) else Color.Transparent).clickable { page = key }.padding(vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                                 Icon(icon, null, tint = if (selected) Color(0xFF9BD5FF) else Color(0xFF9AAABD), modifier = Modifier.size(23.dp))
                                 Text(label, color = if (selected) Color(0xFFB9E1FF) else Color(0xFF9AAABD), fontSize = 10.sp, maxLines = 1)
                             }
@@ -150,11 +150,11 @@ private fun YinnMotionApp(activity: ComponentActivity) {
                     Text("v1.2.0", color = muted, fontSize = 12.sp)
                 }
                 when (page) {
-                    "Home" -> HomeScreen(projectName, { projectName = it }, assets.size, notice, { page = "Editor" }, { mediaPicker.launch(arrayOf("video/*", "image/*")) }, { audioPicker.launch(arrayOf("audio/*")) })
-                    "Editor" -> EditorScreen(assets.toList(), { mediaPicker.launch(arrayOf("video/*", "image/*")) }, { audioPicker.launch(arrayOf("audio/*")) }, { page = "Code" })
-                    "Code" -> CodeScreen(tab, { tab = it }, html, { html = it }, css, { css = it }, js, { js = it })
+                    "Home" -> HomeScreen(projectName, { projectName = it }, assets.size, notice, language == "id", { page = "Editor" }, { mediaPicker.launch(arrayOf("video/*", "image/*")) }, { audioPicker.launch(arrayOf("audio/*")) })
+                    "Editor" -> EditorScreen(assets, { mediaPicker.launch(arrayOf("video/*", "image/*")) }, { audioPicker.launch(arrayOf("audio/*")) }, language == "id", { page = "Code" })
+                    "Code" -> CodeScreen(tab, { tab = it }, html, { html = it }, css, { css = it }, js, { js = it }, language == "id")
                     "Settings" -> SettingsScreen(appearance, { appearance = it }, language, { language = it }, highFps, { highFps = it }, settingsNotice)
-                    else -> AboutScreen()
+                    else -> AboutScreen(language == "id")
                 }
             }
         }
@@ -189,31 +189,31 @@ private fun BrandMark(size: Int) {
 }
 
 @Composable
-private fun HomeScreen(name: String, setName: (String) -> Unit, count: Int, notice: String, edit: () -> Unit, media: () -> Unit, audio: () -> Unit) {
+private fun HomeScreen(name: String, setName: (String) -> Unit, count: Int, notice: String, id: Boolean, edit: () -> Unit, media: () -> Unit, audio: () -> Unit) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item { Text("Create something\nthat moves.", fontSize = 34.sp, lineHeight = 39.sp, fontWeight = FontWeight.Bold, color = foreground); Text("A lightweight, code-first motion studio.", color = muted) }
+        item { Text(if (id) "Buat sesuatu\nyang bergerak." else "Create something\nthat moves.", fontSize = 34.sp, lineHeight = 39.sp, fontWeight = FontWeight.Bold, color = foreground); Text(if (id) "Studio motion ringan berbasis kode." else "A lightweight, code-first motion studio.", color = muted) }
         item {
             Surface(color = panel, shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth().clickable { edit() }) {
                 Column(Modifier.padding(20.dp)) {
-                    Text("START CREATING", color = blue, fontSize = 11.sp, letterSpacing = 2.sp)
-                    Text("New project", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = foreground)
-                    Text("Code, compose, preview and export.", color = muted)
+                    Text(if (id) "MULAI BERKARYA" else "START CREATING", color = blue, fontSize = 11.sp, letterSpacing = 2.sp)
+                    Text(if (id) "Proyek baru" else "New project", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = foreground)
+                    Text(if (id) "Tulis kode, susun media, preview dan ekspor." else "Code, compose, preview and export.", color = muted)
                     Spacer(Modifier.height(15.dp))
-                    Button(onClick = edit, modifier = Modifier.fillMaxWidth()) { Text("Open editor") }
+                    Button(onClick = edit, modifier = Modifier.fillMaxWidth()) { Text(if (id) "Buka editor" else "Open editor") }
                 }
             }
         }
-        item { Text("QUICK IMPORT", color = muted, fontSize = 11.sp, letterSpacing = 2.sp) }
+        item { Text(if (id) "IMPOR CEPAT" else "QUICK IMPORT", color = muted, fontSize = 11.sp, letterSpacing = 2.sp) }
         item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickTile("Video / Image", Icons.Default.AddPhotoAlternate, media, Modifier.weight(1f))
+            QuickTile(if (id) "Video / Gambar" else "Video / Image", Icons.Default.AddPhotoAlternate, media, Modifier.weight(1f))
             QuickTile("Audio", Icons.Default.AudioFile, audio, Modifier.weight(1f))
         } }
         item {
             Surface(color = panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("CURRENT PROJECT", color = muted, fontSize = 10.sp, letterSpacing = 2.sp)
-                    OutlinedTextField(value = name, onValueChange = setName, label = { Text("Project name") }, singleLine = true)
-                    Text("$count imported assets", color = blue)
+                    Text(if (id) "PROYEK SAAT INI" else "CURRENT PROJECT", color = muted, fontSize = 10.sp, letterSpacing = 2.sp)
+                    OutlinedTextField(value = name, onValueChange = setName, label = { Text(if (id) "Nama proyek" else "Project name") }, singleLine = true)
+                    Text(if (id) "$count aset diimpor" else "$count imported assets", color = blue)
                     Text(notice, color = muted, fontSize = 12.sp)
                 }
             }
@@ -233,7 +233,7 @@ private fun QuickTile(title: String, icon: androidx.compose.ui.graphics.vector.I
 }
 
 @Composable
-private fun EditorScreen(assets: SnapshotStateList<Pair<String, Uri>>, media: () -> Unit, audio: () -> Unit, code: () -> Unit) {
+private fun EditorScreen(assets: SnapshotStateList<Pair<String, Uri>>, media: () -> Unit, audio: () -> Unit, id: Boolean, code: () -> Unit) {
     val context = LocalContext.current
     val clips = assets
     var selected by remember { mutableIntStateOf(0) }
@@ -296,8 +296,8 @@ private fun EditorScreen(assets: SnapshotStateList<Pair<String, Uri>>, media: ()
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Studio", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = foreground)
-                    Text("Editor workspace • ${clips.size} clips", color = muted, fontSize = 13.sp)
+                    Text(if (id) "Studio Editor" else "Studio", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = foreground)
+                    Text(if (id) "Ruang kerja • ${clips.size} klip" else "Editor workspace • ${clips.size} clips", color = muted, fontSize = 13.sp)
                 }
                 Text("9:16", color = blue, fontWeight = FontWeight.Bold)
             }
@@ -331,10 +331,10 @@ private fun EditorScreen(assets: SnapshotStateList<Pair<String, Uri>>, media: ()
             Surface(color = panel, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("TIMELINE", color = blue, fontSize = 11.sp, letterSpacing = 2.sp, modifier = Modifier.weight(1f))
+                        Text(if (id) "LINIMASA" else "TIMELINE", color = blue, fontSize = 11.sp, letterSpacing = 2.sp, modifier = Modifier.weight(1f))
                         Text("${clips.size} clips", color = muted, fontSize = 11.sp)
                     }
-                    if (clips.isEmpty()) Text("Import media to create your first track.", color = muted, fontSize = 12.sp)
+                    if (clips.isEmpty()) Text(if (id) "Impor media untuk membuat track pertama." else "Import media to create your first track.", color = muted, fontSize = 12.sp)
                     clips.forEachIndexed { index, asset ->
                         Surface(color = if (selected == index) Color(0xFF25496A) else Color(0xFF101722), shape = RoundedCornerShape(11.dp), modifier = Modifier.fillMaxWidth().clickable { selected = index }) {
                             Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -359,7 +359,7 @@ private fun EditorScreen(assets: SnapshotStateList<Pair<String, Uri>>, media: ()
             Button(onClick = ::exportSelectedVideo, enabled = !exporting && selectedClip?.first == "Video", modifier = Modifier.fillMaxWidth()) {
                 if (exporting) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Icon(Icons.Default.FileUpload, null)
                 Spacer(Modifier.width(8.dp))
-                Text(if (exporting) "Exporting MP4…" else "Export selected video to MP4")
+                Text(if (exporting) (if (id) "Mengekspor MP4…" else "Exporting MP4…") else (if (id) "Ekspor video terpilih ke MP4" else "Export selected video to MP4"))
             }
             if (exportState.isNotBlank()) Text(exportState, color = muted, fontSize = 11.sp)
         }
@@ -368,7 +368,7 @@ private fun EditorScreen(assets: SnapshotStateList<Pair<String, Uri>>, media: ()
     }
 }
 @Composable
-private fun CodeScreen(tab: String, setTab: (String) -> Unit, html: String, setHtml: (String) -> Unit, css: String, setCss: (String) -> Unit, js: String, setJs: (String) -> Unit) {
+private fun CodeScreen(tab: String, setTab: (String) -> Unit, html: String, setHtml: (String) -> Unit, css: String, setCss: (String) -> Unit, js: String, setJs: (String) -> Unit, id: Boolean) {
     val context = LocalContext.current
     var showPreview by remember { mutableStateOf(false) }
     val code = when (tab) { "CSS" -> css; "JavaScript" -> js; else -> html }
@@ -380,10 +380,10 @@ private fun CodeScreen(tab: String, setTab: (String) -> Unit, html: String, setH
     Column(Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Code Motion", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = foreground)
+                Text(if (id) "Kode Motion" else "Code Motion", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = foreground)
                 Text("HTML • CSS • JavaScript • GSAP", color = muted, fontSize = 12.sp)
             }
-            Button(onClick = { showPreview = !showPreview }) { Text(if (showPreview) "Code" else "Preview") }
+            Button(onClick = { showPreview = !showPreview }) { Text(if (showPreview) (if (id) "Kode" else "Code") else "Preview") }
         }
         Spacer(Modifier.height(12.dp))
         if (showPreview) {
@@ -471,7 +471,7 @@ private fun SettingsScreen(
 }
 
 @Composable
-private fun AboutScreen() {
+private fun AboutScreen(id: Boolean) {
     val context = LocalContext.current
     val links = listOf(
         Triple("Telegram", "@yinnprovpn", "https://t.me/yinnprovpn"),
@@ -491,11 +491,11 @@ private fun AboutScreen() {
         }
         item {
             Text("YINNDEV", color = foreground, fontSize = 30.sp, fontWeight = FontWeight.Black)
-            Text("Pengembang aplikasi", color = muted, fontSize = 14.sp)
+            Text(if (id) "Pengembang aplikasi" else "Application developer", color = muted, fontSize = 14.sp)
             Spacer(Modifier.height(10.dp))
-            Text("YinnMotion adalah studio kreatif Android untuk mengolah media dan membuat motion dengan workflow berbasis kode.", color = foreground, fontSize = 14.sp)
+            Text(if (id) "YinnMotion adalah studio kreatif Android untuk mengolah media dan membuat motion dengan workflow berbasis kode." else "YinnMotion is a creative Android studio for media editing and code-driven motion workflows.", color = foreground, fontSize = 14.sp)
         }
-        item { Text("MEDIA SOSIAL", color = muted, fontSize = 12.sp, letterSpacing = 2.sp) }
+        item { Text(if (id) "MEDIA SOSIAL" else "SOCIAL MEDIA", color = muted, fontSize = 12.sp, letterSpacing = 2.sp) }
         item {
             Surface(color = panel, shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(horizontal = 18.dp)) {
