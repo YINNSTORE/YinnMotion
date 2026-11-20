@@ -20,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -66,6 +68,8 @@ private fun YinnMotionApp(activity: ComponentActivity) {
     var highFps by remember { mutableStateOf(prefs.getBoolean("high_fps", false)) }
     var settingsNotice by remember { mutableStateOf("") }
     var page by remember { mutableStateOf("Home") }
+    var showSplash by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { delay(1500); showSplash = false }
 
     LaunchedEffect(appearance, language, highFps) {
         prefs.edit().putString("appearance", appearance).putString("language", language).putBoolean("high_fps", highFps).apply()
@@ -98,7 +102,7 @@ private fun YinnMotionApp(activity: ComponentActivity) {
             }
         }
     }
-    LaunchedEffect(projectName, html, css, js, assets.size) {
+    LaunchedEffect(projectName, html, css, js, assets.toList()) {
         prefs.edit().putString("project_name", projectName).putString("code_html", html).putString("code_css", css).putString("code_js", js)
             .putStringSet("project_assets", assets.map { it.first + "|" + it.second.toString() }.toSet()).apply()
     }
@@ -154,6 +158,25 @@ private fun YinnMotionApp(activity: ComponentActivity) {
                 }
             }
         }
+        if (showSplash) SplashOverlay()
+        }
+    }
+}
+
+@Composable
+private fun SplashOverlay() {
+    val scale by animateFloatAsState(targetValue = 1f, animationSpec = tween(700), label = "splashScale")
+    val alpha by animateFloatAsState(targetValue = 1f, animationSpec = tween(500), label = "splashAlpha")
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF102E50), Color(0xFF060B13)))), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.scale(scale).alpha(alpha)) {
+            BrandMark(104)
+            Spacer(Modifier.height(22.dp))
+            Text("YINNMOTION", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.Black, letterSpacing = 4.sp)
+            Text("CREATE • MOVE • INSPIRE", color = Color(0xFF9BD5FF), fontSize = 10.sp, letterSpacing = 2.sp)
+            Spacer(Modifier.height(34.dp))
+            LinearProgressIndicator(color = Color(0xFF8BCBFF), trackColor = Color(0x334A91C9), modifier = Modifier.width(92.dp))
+            Spacer(Modifier.height(12.dp))
+            Text("YINNDEV", color = Color(0xFF8FA7C2), fontSize = 10.sp, letterSpacing = 3.sp)
         }
     }
 }
@@ -210,10 +233,9 @@ private fun QuickTile(title: String, icon: androidx.compose.ui.graphics.vector.I
 }
 
 @Composable
-private fun EditorScreen(assets: List<Pair<String, Uri>>, media: () -> Unit, audio: () -> Unit, code: () -> Unit) {
+private fun EditorScreen(assets: SnapshotStateList<Pair<String, Uri>>, media: () -> Unit, audio: () -> Unit, code: () -> Unit) {
     val context = LocalContext.current
-    val clips = remember { mutableStateListOf<Pair<String, Uri>>().apply { addAll(assets) } }
-    LaunchedEffect(assets.size) { assets.forEach { if (it !in clips) clips.add(it) } }
+    val clips = assets
     var selected by remember { mutableIntStateOf(0) }
     var exportState by remember { mutableStateOf("") }
     var exporting by remember { mutableStateOf(false) }
@@ -325,7 +347,8 @@ private fun EditorScreen(assets: List<Pair<String, Uri>>, media: () -> Unit, aud
                                     Text(asset.second.lastPathSegment ?: "Imported file", color = muted, fontSize = 10.sp, maxLines = 1)
                                 }
                                 IconButton(onClick = { if (index > 0) { val item = clips.removeAt(index); clips.add(index - 1, item); selected = index - 1 } }, enabled = index > 0) { Icon(Icons.Default.KeyboardArrowUp, "Move up", tint = foreground) }
-                                IconButton(onClick = { clips.removeAt(index); selected = (selected - 1).coerceAtLeast(0) }) { Icon(Icons.Default.DeleteOutline, "Remove", tint = Color(0xFFFF8C8C)) }
+                                IconButton(onClick = { if (index < clips.lastIndex) { val item = clips.removeAt(index); clips.add(index + 1, item); selected = index + 1 } }, enabled = index < clips.lastIndex) { Icon(Icons.Default.KeyboardArrowDown, "Move down", tint = foreground) }
+                                IconButton(onClick = { clips.removeAt(index); selected = (if (index < selected) selected - 1 else selected).coerceAtMost((clips.size - 1).coerceAtLeast(0)) }) { Icon(Icons.Default.DeleteOutline, "Remove", tint = Color(0xFFFF8C8C)) }
                             }
                         }
                     }
