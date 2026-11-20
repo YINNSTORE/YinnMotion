@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Android APK
+    name: Build 32-bit, 64-bit & Universal APKs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
@@ -46,20 +46,37 @@ jobs:
           echo "tag=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "name=YinnMotion ${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Build release APK
+      - name: Build three release APKs
         run: gradle --no-daemon assembleRelease
 
-      - name: Rename APK
+      - name: Prepare release files
         shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.tag }}
         run: |
+          set -euo pipefail
+          OUT="app/build/outputs/apk/release"
           mkdir -p release
-          APK=$(find app/build/outputs/apk/release -maxdepth 1 -name "*.apk" -print -quit)
-          test -n "$APK"
-          cp "$APK" "release/YinnMotion-${{ steps.version.outputs.tag }}.apk"
+
+          APK_64=$(find "$OUT" -type f -name '*arm64-v8a*release*.apk' -print -quit)
+          APK_32=$(find "$OUT" -type f -name '*armeabi-v7a*release*.apk' -print -quit)
+          APK_UNIVERSAL=$(find "$OUT" -type f -name '*universal*release*.apk' -print -quit)
+
+          test -n "$APK_64" || { echo "64-bit APK not found"; exit 1; }
+          test -n "$APK_32" || { echo "32-bit APK not found"; exit 1; }
+          test -n "$APK_UNIVERSAL" || { echo "Universal APK not found"; exit 1; }
+
+          cp "$APK_64" "release/YinnMotion-${VERSION}-arm64-v8a.apk"
+          cp "$APK_32" "release/YinnMotion-${VERSION}-armeabi-v7a.apk"
+          cp "$APK_UNIVERSAL" "release/YinnMotion-${VERSION}-universal.apk"
+
+          echo "Release APKs:"
+          ls -lh release/
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GH_RELEASE_TOKEN }}
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.name }}
           generate_release_notes: true
