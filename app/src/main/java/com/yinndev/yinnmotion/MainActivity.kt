@@ -85,9 +85,9 @@ private fun YinnMotionApp(activity: ComponentActivity) {
     }
     var projectName by remember { mutableStateOf(prefs.getString("project_name", "Untitled Project") ?: "Untitled Project") }
     var tab by remember { mutableStateOf("HTML") }
-    var html by remember { mutableStateOf("<div class=\"scene\">\\n  <h1>Hello YinnMotion</h1>\\n</div>") }
-    var css by remember { mutableStateOf(".scene {\\n  display: flex;\\n  color: white;\\n  background: #080d16;\\n}") }
-    var js by remember { mutableStateOf("// Add animation logic here\\nconst title = document.querySelector('h1');") }
+    var html by remember { mutableStateOf(prefs.getString("code_html", "<div class=\"scene\">\\n  <h1>Hello YinnMotion</h1>\\n</div>") ?: "") }
+    var css by remember { mutableStateOf(prefs.getString("code_css", ".scene {\\n  display: flex;\\n  color: white;\\n  background: #080d16;\\n}") ?: "") }
+    var js by remember { mutableStateOf(prefs.getString("code_js", "// Add animation logic here\\nconst title = document.querySelector('h1');") ?: "") }
     var notice by remember { mutableStateOf("Ready to create") }
     val assets = remember {
         mutableStateListOf<Pair<String, Uri>>().apply {
