@@ -33,6 +33,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.ui.PlayerView
+import androidx.media3.transformer.Transformer
+import androidx.media3.transformer.EditedMediaItem
+import androidx.media3.transformer.Composition
+import androidx.media3.transformer.ExportResult
+import androidx.media3.transformer.ExportException
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
