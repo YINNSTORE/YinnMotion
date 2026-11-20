@@ -29,6 +29,7 @@ private var bg = Color(0xFF090D14)
 private var panel = Color(0xFF151E2C)
 private var blue = Color(0xFF79BEFF)
 private var muted = Color(0xFF91A0B4)
+private var foreground = Color.White
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,9 +50,9 @@ private fun YinnMotionApp(activity: ComponentActivity) {
     LaunchedEffect(appearance, language, highFps) {
         prefs.edit().putString("appearance", appearance).putString("language", language).putBoolean("high_fps", highFps).apply()
         when (appearance) {
-            "light" -> { bg = Color(0xFFF3F6FB); panel = Color.White; blue = Color(0xFF1769AA); muted = Color(0xFF5E6B7A) }
+            "light" -> { bg = Color(0xFFF3F6FB); panel = Color.White; foreground = Color(0xFF17212E); blue = Color(0xFF1769AA); muted = Color(0xFF5E6B7A) }
             "glass" -> { bg = Color(0xFF101B2B); panel = Color(0xAA263D58); blue = Color(0xFF9BD5FF); muted = Color(0xFFB1C4D8) }
-            else -> { bg = Color(0xFF090D14); panel = Color(0xFF151E2C); blue = Color(0xFF79BEFF); muted = Color(0xFF91A0B4) }
+            else -> { bg = Color(0xFF090D14); panel = Color(0xFF151E2C); foreground = Color.White; blue = Color(0xFF79BEFF); muted = Color(0xFF91A0B4) }
         }
         if (android.os.Build.VERSION.SDK_INT >= 23) {
             val attrs = activity.window.attributes
@@ -91,10 +92,10 @@ private fun YinnMotionApp(activity: ComponentActivity) {
             Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp)) {
                 Row(Modifier.fillMaxWidth().padding(vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("YINN", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Color.White)
+                        Text("YINN", fontSize = 25.sp, fontWeight = FontWeight.Black, color = foreground)
                         Text("MOTION STUDIO", fontSize = 10.sp, color = blue, letterSpacing = 3.sp)
                     }
-                    Text("v1.0.0", color = muted, fontSize = 12.sp)
+                    Text("v1.1.0", color = muted, fontSize = 12.sp)
                 }
                 when (page) {
                     "Home" -> HomeScreen(projectName, { projectName = it }, assets.size, notice, { page = "Editor" }, { mediaPicker.launch(arrayOf("video/*", "image/*")) }, { audioPicker.launch(arrayOf("audio/*")) })
@@ -214,7 +215,7 @@ private fun SettingsScreen(
     notice: String
 ) {
     val id = language == "id"
-    val titleColor = if (appearance == "light") Color(0xFF17212E) else Color.White
+    val titleColor = foreground
     LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Text(if (id) "Pengaturan" else "Settings", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = titleColor)
@@ -279,7 +280,7 @@ private fun AboutScreen() {
                 Text("Code-first Video Editor", color = blue)
                 Spacer(Modifier.height(16.dp))
                 AboutLine("Developer", "Yinndev / Ilham")
-                AboutLine("Version", "1.0.0")
+                AboutLine("Version", "1.1.0")
                 AboutLine("Platform", "Android")
                 AboutLine("Engine", "Kotlin · Jetpack Compose · Media3")
                 AboutLine("Motion", "HTML · CSS · JavaScript")
