@@ -9,6 +9,8 @@ on:
         default: "v1.2.0"
         type: string
   push:
+    branches:
+      - main
     tags:
       - "v*"
 
@@ -74,12 +76,13 @@ jobs:
           ls -lh release/
 
       - name: Publish GitHub Release
+        if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
-        with:
-          token: ${{ github.token }}
+        with
+          token: ${{ secrets.GH_RELEASE_TOKEN || github.token }}
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.name }}
-          generate_release_notes: true
+          body: "YinnMotion release: three APK variants (arm64-v8a, armeabi-v7a, universal)."
           files: release/*.apk
           fail_on_unmatched_files: true
           make_latest: true
