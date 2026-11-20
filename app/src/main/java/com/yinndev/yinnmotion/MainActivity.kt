@@ -168,12 +168,12 @@ private fun BrandMark(size: Int) {
 @Composable
 private fun HomeScreen(name: String, setName: (String) -> Unit, count: Int, notice: String, edit: () -> Unit, media: () -> Unit, audio: () -> Unit) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item { Text("Create something\nthat moves.", fontSize = 34.sp, lineHeight = 39.sp, fontWeight = FontWeight.Bold, color = Color.White); Text("A lightweight, code-first motion studio.", color = muted) }
+        item { Text("Create something\nthat moves.", fontSize = 34.sp, lineHeight = 39.sp, fontWeight = FontWeight.Bold, color = foreground); Text("A lightweight, code-first motion studio.", color = muted) }
         item {
             Surface(color = panel, shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth().clickable { edit() }) {
                 Column(Modifier.padding(20.dp)) {
                     Text("START CREATING", color = blue, fontSize = 11.sp, letterSpacing = 2.sp)
-                    Text("New project", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("New project", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = foreground)
                     Text("Code, compose, preview and export.", color = muted)
                     Spacer(Modifier.height(15.dp))
                     Button(onClick = edit, modifier = Modifier.fillMaxWidth()) { Text("Open editor") }
@@ -204,7 +204,7 @@ private fun QuickTile(title: String, icon: androidx.compose.ui.graphics.vector.I
         Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(icon, null, tint = blue, modifier = Modifier.size(28.dp))
             Spacer(Modifier.height(8.dp))
-            Text(title, color = Color.White, fontSize = 13.sp)
+            Text(title, color = foreground, fontSize = 13.sp)
         }
     }
 }
