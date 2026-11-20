@@ -2,6 +2,7 @@ package com.yinndev.yinnmotion
 
 import android.net.Uri
 import android.os.Bundle
+import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -24,21 +25,44 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val bg = Color(0xFF090D14)
-private val panel = Color(0xFF151E2C)
-private val blue = Color(0xFF79BEFF)
-private val muted = Color(0xFF91A0B4)
+private var bg = Color(0xFF090D14)
+private var panel = Color(0xFF151E2C)
+private var blue = Color(0xFF79BEFF)
+private var muted = Color(0xFF91A0B4)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { YinnMotionApp() }
+        setContent { YinnMotionApp(this) }
     }
 }
 
 @Composable
-private fun YinnMotionApp() {
+private fun YinnMotionApp(activity: ComponentActivity) {
+    val prefs = remember { activity.getSharedPreferences("yinnmotion_settings", Context.MODE_PRIVATE) }
+    var appearance by remember { mutableStateOf(prefs.getString("appearance", "dark") ?: "dark") }
+    var language by remember { mutableStateOf(prefs.getString("language", "id") ?: "id") }
+    var highFps by remember { mutableStateOf(prefs.getBoolean("high_fps", false)) }
+    var settingsNotice by remember { mutableStateOf("") }
     var page by remember { mutableStateOf("Home") }
+
+    LaunchedEffect(appearance, language, highFps) {
+        prefs.edit().putString("appearance", appearance).putString("language", language).putBoolean("high_fps", highFps).apply()
+        when (appearance) {
+            "light" -> { bg = Color(0xFFF3F6FB); panel = Color.White; blue = Color(0xFF1769AA); muted = Color(0xFF5E6B7A) }
+            "glass" -> { bg = Color(0xFF101B2B); panel = Color(0xAA263D58); blue = Color(0xFF9BD5FF); muted = Color(0xFFB1C4D8) }
+            else -> { bg = Color(0xFF090D14); panel = Color(0xFF151E2C); blue = Color(0xFF79BEFF); muted = Color(0xFF91A0B4) }
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+            val attrs = activity.window.attributes
+            attrs.preferredRefreshRate = if (highFps) 120f else 0f
+            activity.window.attributes = attrs
+            if (highFps) {
+                val supported = activity.windowManager.defaultDisplay.supportedModes.any { it.refreshRate >= 119f }
+                settingsNotice = if (supported) "120Hz requested; actual FPS depends on device and workload." else "This display does not expose a 120Hz mode."
+            } else settingsNotice = "Standard refresh rate enabled."
+        }
+    }
     var projectName by remember { mutableStateOf("Untitled Project") }
     var tab by remember { mutableStateOf("HTML") }
     var html by remember { mutableStateOf("<div class=\"scene\">\\n  <h1>Hello YinnMotion</h1>\\n</div>") }
@@ -58,7 +82,7 @@ private fun YinnMotionApp() {
     MaterialTheme(colorScheme = darkColorScheme(primary = blue, background = bg, surface = panel)) {
         Scaffold(containerColor = bg, bottomBar = {
             NavigationBar(containerColor = panel) {
-                listOf("Home" to Icons.Default.Home, "Editor" to Icons.Default.Movie, "Code" to Icons.Default.Code, "About" to Icons.Default.Info).forEach { (label, icon) ->
+                listOf("Home" to Icons.Default.Home, "Editor" to Icons.Default.Movie, "Code" to Icons.Default.Code, "Settings" to Icons.Default.Settings, "About" to Icons.Default.Info).forEach { (label, icon) ->
                     NavigationBarItem(selected = page == label, onClick = { page = label }, icon = { Icon(icon, null) }, label = { Text(label) },
                         colors = NavigationBarItemDefaults.colors(selectedIconColor = blue, selectedTextColor = blue, indicatorColor = Color(0xFF20364D), unselectedIconColor = muted, unselectedTextColor = muted))
                 }
@@ -76,6 +100,7 @@ private fun YinnMotionApp() {
                     "Home" -> HomeScreen(projectName, { projectName = it }, assets.size, notice, { page = "Editor" }, { mediaPicker.launch(arrayOf("video/*", "image/*")) }, { audioPicker.launch(arrayOf("audio/*")) })
                     "Editor" -> EditorScreen(assets.toList(), { mediaPicker.launch(arrayOf("video/*", "image/*")) }, { audioPicker.launch(arrayOf("audio/*")) }, { page = "Code" })
                     "Code" -> CodeScreen(tab, { tab = it }, html, { html = it }, css, { css = it }, js, { js = it })
+                    "Settings" -> SettingsScreen(appearance, { appearance = it }, language, { language = it }, highFps, { highFps = it }, settingsNotice)
                     else -> AboutScreen()
                 }
             }
@@ -177,6 +202,66 @@ private fun CodeScreen(tab: String, setTab: (String) -> Unit, html: String, setH
                 textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFFD8E6F6), fontSize = 13.sp, lineHeight = 20.sp),
                 decorationBox = { inner -> Box { if (code.isEmpty()) Text("Write code here…", color = muted); inner() } })
         }
+    }
+}
+
+
+@Composable
+private fun SettingsScreen(
+    appearance: String, setAppearance: (String) -> Unit,
+    language: String, setLanguage: (String) -> Unit,
+    highFps: Boolean, setHighFps: (Boolean) -> Unit,
+    notice: String
+) {
+    val id = language == "id"
+    val titleColor = if (appearance == "light") Color(0xFF17212E) else Color.White
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item {
+            Text(if (id) "Pengaturan" else "Settings", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = titleColor)
+            Text(if (id) "Atur tampilan dan performa aplikasi." else "Customize appearance and performance.", color = muted)
+        }
+        item {
+            Surface(color = panel, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(if (id) "TAMPILAN" else "APPEARANCE", color = blue, fontSize = 11.sp, letterSpacing = 2.sp)
+                    listOf("dark" to (if (id) "Mode malam" else "Dark mode"), "light" to (if (id) "Mode siang" else "Light mode"), "glass" to "Liquid Glass").forEach { (value, label) ->
+                        Row(Modifier.fillMaxWidth().clickable { setAppearance(value) }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = appearance == value, onClick = { setAppearance(value) })
+                            Text(label, color = titleColor)
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            Surface(color = panel, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(if (id) "BAHASA" else "LANGUAGE", color = blue, fontSize = 11.sp, letterSpacing = 2.sp)
+                    listOf("id" to "Bahasa Indonesia", "en" to "English").forEach { (value, label) ->
+                        Row(Modifier.fillMaxWidth().clickable { setLanguage(value) }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = language == value, onClick = { setLanguage(value) })
+                            Text(label, color = titleColor)
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            Surface(color = panel, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(if (id) "PERFORMA EKSPERIMENTAL" else "EXPERIMENTAL PERFORMANCE", color = blue, fontSize = 11.sp, letterSpacing = 2.sp)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("120 FPS / 120Hz", color = titleColor, fontWeight = FontWeight.SemiBold)
+                            Text(if (id) "Meminta refresh rate tinggi jika layar mendukung. Tidak menjamin 120 FPS." else "Requests a high refresh rate when supported. Does not guarantee 120 FPS.", color = muted, fontSize = 12.sp)
+                        }
+                        Switch(checked = highFps, onCheckedChange = setHighFps)
+                    }
+                    if (notice.isNotBlank()) Text(notice, color = muted, fontSize = 11.sp)
+                }
+            }
+        }
+        item { Text(if (id) "Pengaturan tersimpan otomatis. Fitur 120Hz bergantung pada perangkat." else "Settings save automatically. 120Hz depends on device support.", color = muted, fontSize = 12.sp) }
     }
 }
 
