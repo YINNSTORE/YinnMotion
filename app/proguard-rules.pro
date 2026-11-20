@@ -1,0 +1,1 @@
+# YinnMotion release rules
