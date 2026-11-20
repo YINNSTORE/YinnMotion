@@ -24,6 +24,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,6 +54,8 @@ private fun YinnMotionApp(activity: ComponentActivity) {
     var highFps by remember { mutableStateOf(prefs.getBoolean("high_fps", false)) }
     var settingsNotice by remember { mutableStateOf("") }
     var page by remember { mutableStateOf("Home") }
+    var splashVisible by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(1250); splashVisible = false }
 
     LaunchedEffect(appearance, language, highFps) {
         prefs.edit().putString("appearance", appearance).putString("language", language).putBoolean("high_fps", highFps).apply()
@@ -84,6 +91,7 @@ private fun YinnMotionApp(activity: ComponentActivity) {
     }
 
     MaterialTheme(colorScheme = if (appearance == "light") lightColorScheme(primary = blue, background = bg, surface = panel) else darkColorScheme(primary = blue, background = bg, surface = panel)) {
+        Box(Modifier.fillMaxSize()) {
         Scaffold(containerColor = bg, bottomBar = {
             Box(Modifier.fillMaxWidth().padding(bottom = 12.dp), contentAlignment = Alignment.Center) {
                 Surface(color = Color(0xDD182333), shape = RoundedCornerShape(28.dp), border = BorderStroke(1.dp, Color(0x557CCBFF)), shadowElevation = 18.dp, modifier = Modifier.fillMaxWidth(0.94f).height(76.dp)) {
@@ -105,7 +113,7 @@ private fun YinnMotionApp(activity: ComponentActivity) {
                         Text("YINN", fontSize = 25.sp, fontWeight = FontWeight.Black, color = foreground)
                         Text("MOTION STUDIO", fontSize = 10.sp, color = blue, letterSpacing = 3.sp)
                     }
-                    Text("v1.1.0", color = muted, fontSize = 12.sp)
+                    Text("v1.2.0", color = muted, fontSize = 12.sp)
                 }
                 when (page) {
                     "Home" -> HomeScreen(projectName, { projectName = it }, assets.size, notice, { page = "Editor" }, { mediaPicker.launch(arrayOf("video/*", "image/*")) }, { audioPicker.launch(arrayOf("audio/*")) })
@@ -116,6 +124,26 @@ private fun YinnMotionApp(activity: ComponentActivity) {
                 }
             }
         }
+        if (splashVisible) {
+            val splashScale by animateFloatAsState(if (splashVisible) 1f else 0.8f, animationSpec = tween(700), label = "brandScale")
+            val splashAlpha by animateFloatAsState(if (splashVisible) 1f else 0f, animationSpec = tween(650), label = "brandAlpha")
+            Box(Modifier.fillMaxSize().background(Color(0xFF080E19)), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.scale(splashScale).alpha(splashAlpha)) {
+                    BrandMark(104)
+                    Spacer(Modifier.height(16.dp))
+                    Text("YINNMOTION", color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Black, letterSpacing = 3.sp)
+                    Text("CREATE • MOVE • INSPIRE", color = Color(0xFF82CFFF), fontSize = 10.sp, letterSpacing = 2.sp)
+                }
+            }
+        }
+        }
+    }
+}
+
+@Composable
+private fun BrandMark(size: Int) {
+    Box(Modifier.size(size.dp).background(Color(0xFF102B4B), RoundedCornerShape((size * 0.28f).dp)), contentAlignment = Alignment.Center) {
+        Icon(Icons.Default.PlayArrow, null, tint = Color(0xFFBDEAFF), modifier = Modifier.size((size * 0.68f).dp))
     }
 }
 
