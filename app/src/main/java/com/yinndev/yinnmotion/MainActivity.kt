@@ -70,7 +70,7 @@ private fun YinnMotionApp(activity: ComponentActivity) {
         prefs.edit().putString("appearance", appearance).putString("language", language).putBoolean("high_fps", highFps).apply()
         when (appearance) {
             "light" -> { bg = Color(0xFFF3F6FB); panel = Color.White; foreground = Color(0xFF17212E); blue = Color(0xFF1769AA); muted = Color(0xFF5E6B7A) }
-            "glass" -> { bg = Color(0xFF101B2B); panel = Color(0xAA263D58); blue = Color(0xFF9BD5FF); muted = Color(0xFFB1C4D8) }
+            "glass" -> { bg = Color(0xFF101B2B); panel = Color(0xAA263D58); foreground = Color.White; blue = Color(0xFF9BD5FF); muted = Color(0xFFB1C4D8) }
             else -> { bg = Color(0xFF090D14); panel = Color(0xFF151E2C); foreground = Color.White; blue = Color(0xFF79BEFF); muted = Color(0xFF91A0B4) }
         }
         if (android.os.Build.VERSION.SDK_INT >= 23) {
@@ -83,13 +83,24 @@ private fun YinnMotionApp(activity: ComponentActivity) {
             } else settingsNotice = "Standard refresh rate enabled."
         }
     }
-    var projectName by remember { mutableStateOf("Untitled Project") }
+    var projectName by remember { mutableStateOf(prefs.getString("project_name", "Untitled Project") ?: "Untitled Project") }
     var tab by remember { mutableStateOf("HTML") }
     var html by remember { mutableStateOf("<div class=\"scene\">\\n  <h1>Hello YinnMotion</h1>\\n</div>") }
     var css by remember { mutableStateOf(".scene {\\n  display: flex;\\n  color: white;\\n  background: #080d16;\\n}") }
     var js by remember { mutableStateOf("// Add animation logic here\\nconst title = document.querySelector('h1');") }
     var notice by remember { mutableStateOf("Ready to create") }
-    val assets = remember { mutableStateListOf<Pair<String, Uri>>() }
+    val assets = remember {
+        mutableStateListOf<Pair<String, Uri>>().apply {
+            prefs.getStringSet("project_assets", emptySet()).orEmpty().forEach { saved ->
+                val parts = saved.split("|", limit = 2)
+                if (parts.size == 2) runCatching { add(parts[0] to Uri.parse(parts[1])) }
+            }
+        }
+    }
+    LaunchedEffect(projectName, html, css, js, assets.size) {
+        prefs.edit().putString("project_name", projectName).putString("code_html", html).putString("code_css", css).putString("code_js", js)
+            .putStringSet("project_assets", assets.map { it.first + "|" + it.second.toString() }.toSet()).apply()
+    }
 
     val mediaPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         uris.forEach { uri ->
