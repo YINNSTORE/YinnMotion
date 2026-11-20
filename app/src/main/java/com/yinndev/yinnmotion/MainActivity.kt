@@ -40,6 +40,7 @@ import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.ExportException
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.ImageView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -281,14 +282,18 @@ private fun EditorScreen(assets: List<Pair<String, Uri>>, media: () -> Unit, aud
         }
         item {
             Surface(color = Color.Black, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth().height(250.dp)) {
-                if (playable != null) {
-                    AndroidView(factory = { viewContext -> PlayerView(viewContext).apply { this.player = player; useController = true } }, modifier = Modifier.fillMaxSize(), update = { it.player = player })
-                } else {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                when {
+                    playable != null -> AndroidView(factory = { viewContext -> PlayerView(viewContext).apply { this.player = player; useController = true } }, modifier = Modifier.fillMaxSize(), update = { it.player = player })
+                    selectedClip?.first == "Image" -> AndroidView(
+                        factory = { viewContext -> ImageView(viewContext).apply { scaleType = ImageView.ScaleType.FIT_CENTER; setImageURI(selectedClip.second) } },
+                        update = { it.setImageURI(selectedClip.second) },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.Movie, null, tint = Color(0xFF9BD5FF), modifier = Modifier.size(52.dp))
-                            Text(if (selectedClip?.first == "Image") "Image layer selected" else "Preview canvas", color = Color.White, fontWeight = FontWeight.SemiBold)
-                            Text(selectedClip?.second?.lastPathSegment ?: "Import a video to preview it here", color = Color.LightGray, fontSize = 12.sp, maxLines = 1)
+                            Text("Preview canvas", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text("Import a video or image to preview it here", color = Color.LightGray, fontSize = 12.sp)
                         }
                     }
                 }
