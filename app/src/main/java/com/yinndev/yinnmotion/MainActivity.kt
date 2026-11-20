@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.scale
@@ -165,10 +166,14 @@ private fun YinnMotionApp(activity: ComponentActivity) {
 
 @Composable
 private fun SplashOverlay() {
-    val scale by animateFloatAsState(targetValue = 1f, animationSpec = tween(700), label = "splashScale")
-    val alpha by animateFloatAsState(targetValue = 1f, animationSpec = tween(500), label = "splashAlpha")
+    val scale = remember { Animatable(0.72f) }
+    val opacity = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        opacity.animateTo(1f, animationSpec = tween(450))
+        scale.animateTo(1f, animationSpec = tween(750))
+    }
     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF102E50), Color(0xFF060B13)))), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.scale(scale).alpha(alpha)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.scale(scale.value).alpha(opacity.value)) {
             BrandMark(104)
             Spacer(Modifier.height(22.dp))
             Text("YINNMOTION", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.Black, letterSpacing = 4.sp)
