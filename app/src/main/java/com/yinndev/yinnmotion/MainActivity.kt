@@ -232,8 +232,29 @@ private fun EditorScreen(assets: List<Pair<String, Uri>>, media: () -> Unit, aud
         exportState = "Menyiapkan export MP4…"
         val listener = object : Transformer.Listener {
             override fun onCompleted(composition: Composition, result: ExportResult) {
+                try {
+                    if (android.os.Build.VERSION.SDK_INT >= 29) {
+                        val values = android.content.ContentValues().apply {
+                            put(android.provider.MediaStore.Video.Media.DISPLAY_NAME, output.name)
+                            put(android.provider.MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+                            put(android.provider.MediaStore.Video.Media.RELATIVE_PATH, android.os.Environment.DIRECTORY_MOVIES + "/YinnMotion")
+                            put(android.provider.MediaStore.Video.Media.IS_PENDING, 1)
+                        }
+                        val uri = context.contentResolver.insert(android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)
+                            ?: throw IllegalStateException("Tidak bisa membuat file di Galeri")
+                        context.contentResolver.openOutputStream(uri)?.use { destination -> output.inputStream().use { source -> source.copyTo(destination) } }
+                            ?: throw IllegalStateException("Tidak bisa menulis file hasil export")
+                        val done = android.content.ContentValues().apply { put(android.provider.MediaStore.Video.Media.IS_PENDING, 0) }
+                        context.contentResolver.update(uri, done, null, null)
+                        output.delete()
+                        exportState = "Export selesai. Video tersimpan di Movies/YinnMotion."
+                    } else {
+                        exportState = "Export selesai: ${output.absolutePath}"
+                    }
+                } catch (error: Exception) {
+                    exportState = "Export selesai, tetapi gagal menyimpan ke Galeri: ${error.message}"
+                }
                 exporting = false
-                exportState = "Export selesai: ${output.absolutePath}"
             }
             override fun onError(composition: Composition, result: ExportResult, exception: ExportException) {
                 exporting = false
