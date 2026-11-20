@@ -8,6 +8,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -82,10 +84,17 @@ private fun YinnMotionApp(activity: ComponentActivity) {
 
     MaterialTheme(colorScheme = if (appearance == "light") lightColorScheme(primary = blue, background = bg, surface = panel) else darkColorScheme(primary = blue, background = bg, surface = panel)) {
         Scaffold(containerColor = bg, bottomBar = {
-            NavigationBar(containerColor = panel) {
-                listOf("Home" to Icons.Default.Home, "Editor" to Icons.Default.Movie, "Code" to Icons.Default.Code, "Settings" to Icons.Default.Settings, "About" to Icons.Default.Info).forEach { (label, icon) ->
-                    NavigationBarItem(selected = page == label, onClick = { page = label }, icon = { Icon(icon, null) }, label = { Text(label) },
-                        colors = NavigationBarItemDefaults.colors(selectedIconColor = blue, selectedTextColor = blue, indicatorColor = Color(0xFF20364D), unselectedIconColor = muted, unselectedTextColor = muted))
+            Box(Modifier.fillMaxWidth().padding(bottom = 12.dp), contentAlignment = Alignment.Center) {
+                Surface(color = Color(0xDD182333), shape = RoundedCornerShape(28.dp), border = BorderStroke(1.dp, Color(0x557CCBFF)), shadowElevation = 18.dp, modifier = Modifier.fillMaxWidth(0.94f).height(76.dp)) {
+                    Row(Modifier.fillMaxSize().padding(6.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                        listOf("Home" to Icons.Default.Home, "Editor" to Icons.Default.Movie, "Code" to Icons.Default.Code, "Settings" to Icons.Default.Settings, "About" to Icons.Default.Info).forEach { (label, icon) ->
+                            val selected = page == label
+                            Column(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(21.dp)).background(if (selected) Color(0x553D8DCE) else Color.Transparent).clickable { page = label }.padding(vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                Icon(icon, null, tint = if (selected) Color(0xFF9BD5FF) else Color(0xFF9AAABD), modifier = Modifier.size(23.dp))
+                                Text(label, color = if (selected) Color(0xFFB9E1FF) else Color(0xFF9AAABD), fontSize = 10.sp, maxLines = 1)
+                            }
+                        }
+                    }
                 }
             }
         }) { padding ->
