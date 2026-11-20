@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -277,28 +278,68 @@ private fun SettingsScreen(
 
 @Composable
 private fun AboutScreen() {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("About", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        Surface(color = panel, shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(20.dp)) {
-                Box(Modifier.size(65.dp).background(Color(0xFF203B59), RoundedCornerShape(20.dp)), contentAlignment = Alignment.Center) {
-                    Text("Y", color = blue, fontSize = 40.sp, fontWeight = FontWeight.Black)
+    val context = LocalContext.current
+    val links = listOf(
+        Triple("Telegram", "@yinnprovpn", "https://t.me/yinnprovpn"),
+        Triple("TikTok", "@yinnzzz7", "https://www.tiktok.com/@yinnzzz7"),
+        Triple("Instagram", "@amm0.skizzo__", "https://www.instagram.com/amm0.skizzo__/")
+    )
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item {
+            Box(Modifier.fillMaxWidth().height(245.dp).background(Brush.verticalGradient(listOf(Color(0xFF163B65), Color(0xFF080E19))), RoundedCornerShape(24.dp)), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    BrandMark(88)
+                    Spacer(Modifier.height(14.dp))
+                    Text("YINNMOTION", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Black, letterSpacing = 3.sp)
+                    Text("CREATE • MOVE • INSPIRE", color = Color(0xFF9BD5FF), fontSize = 10.sp, letterSpacing = 2.sp)
                 }
-                Spacer(Modifier.height(14.dp))
-                Text("YinnMotion", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Text("Code-first Video Editor", color = blue)
-                Spacer(Modifier.height(16.dp))
-                AboutLine("Developer", "Yinndev / Ilham")
-                AboutLine("Version", "1.1.0")
-                AboutLine("Platform", "Android")
-                AboutLine("Engine", "Kotlin · Jetpack Compose · Media3")
-                AboutLine("Motion", "HTML · CSS · JavaScript")
             }
         }
-        Text("Built for creators who love code.", color = muted)
+        item {
+            Text("YINNDEV", color = foreground, fontSize = 30.sp, fontWeight = FontWeight.Black)
+            Text("Pengembang aplikasi", color = muted, fontSize = 14.sp)
+            Spacer(Modifier.height(10.dp))
+            Text("YinnMotion adalah studio kreatif Android untuk mengolah media dan membuat motion dengan workflow berbasis kode.", color = foreground, fontSize = 14.sp)
+        }
+        item { Text("MEDIA SOSIAL", color = muted, fontSize = 12.sp, letterSpacing = 2.sp) }
+        item {
+            Surface(color = panel, shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(horizontal = 18.dp)) {
+                    links.forEachIndexed { index, item ->
+                        Row(Modifier.fillMaxWidth().clickable {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(item.third))
+                            context.startActivity(intent)
+                        }.padding(vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(when(item.first) { "Telegram" -> Icons.Default.Send; "TikTok" -> Icons.Default.MusicVideo; else -> Icons.Default.CameraAlt }, null, tint = foreground, modifier = Modifier.size(25.dp))
+                            Spacer(Modifier.width(18.dp))
+                            Text(item.first, color = foreground, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                            Text(item.second, color = muted, fontSize = 13.sp)
+                            Spacer(Modifier.width(8.dp))
+                            Icon(Icons.Default.ChevronRight, null, tint = muted)
+                        }
+                        if (index != links.lastIndex) Divider(color = muted.copy(alpha = 0.22f))
+                    }
+                }
+            }
+        }
+        item {
+            Surface(color = Color(0xFFB8D4F6), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().clickable {
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://t.me/yinnprovpn"))
+                context.startActivity(intent)
+            }) {
+                Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Favorite, null, tint = Color(0xFF203A5C), modifier = Modifier.size(30.dp))
+                    Spacer(Modifier.width(14.dp))
+                    Column {
+                        Text("Dukung developer", color = Color(0xFF203A5C), fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Text("Terhubung dan dukung pengembangan YinnMotion", color = Color(0xFF304D70), fontSize = 11.sp)
+                    }
+                }
+            }
+        }
+        item { Text("YinnMotion v1.2.0 • Crafted by Yinndev", color = muted, fontSize = 11.sp, modifier = Modifier.padding(bottom = 14.dp)) }
     }
 }
-
 @Composable
 private fun AboutLine(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
