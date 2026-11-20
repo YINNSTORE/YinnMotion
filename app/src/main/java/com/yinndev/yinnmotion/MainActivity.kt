@@ -38,6 +38,8 @@ import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.ExportException
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -307,24 +309,47 @@ private fun EditorScreen(assets: List<Pair<String, Uri>>, media: () -> Unit, aud
 }
 @Composable
 private fun CodeScreen(tab: String, setTab: (String) -> Unit, html: String, setHtml: (String) -> Unit, css: String, setCss: (String) -> Unit, js: String, setJs: (String) -> Unit) {
+    val context = LocalContext.current
+    var showPreview by remember { mutableStateOf(false) }
     val code = when (tab) { "CSS" -> css; "JavaScript" -> js; else -> html }
     val update = when (tab) { "CSS" -> setCss; "JavaScript" -> setJs; else -> setHtml }
+    val document = remember(html, css, js) {
+        val script = "<script>try { $js } catch(e) { document.body.insertAdjacentHTML('beforeend','<pre>'+e+'</pre>') }</script>"
+        "<!doctype html><html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>body{margin:0;padding:16px;background:#080d16;color:white;font-family:Arial,sans-serif} $css</style><script src='https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js'></script></head><body>$html$script</body></html>"
+    }
     Column(Modifier.fillMaxSize()) {
-        Text("Code Motion", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        Text("Edit HTML, CSS and JavaScript.", color = muted, fontSize = 13.sp)
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-            listOf("HTML", "CSS", "JavaScript").forEach { FilterChip(selected = tab == it, onClick = { setTab(it) }, label = { Text(it) }) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Code Motion", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = foreground)
+                Text("HTML • CSS • JavaScript • GSAP", color = muted, fontSize = 12.sp)
+            }
+            Button(onClick = { showPreview = !showPreview }) { Text(if (showPreview) "Code" else "Preview") }
         }
-        Spacer(Modifier.height(10.dp))
-        Surface(color = Color(0xFF101722), shape = RoundedCornerShape(15.dp), modifier = Modifier.fillMaxSize()) {
-            BasicTextField(value = code, onValueChange = update, modifier = Modifier.fillMaxSize().padding(14.dp),
-                textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFFD8E6F6), fontSize = 13.sp, lineHeight = 20.sp),
-                decorationBox = { inner -> Box { if (code.isEmpty()) Text("Write code here…", color = muted); inner() } })
+        Spacer(Modifier.height(12.dp))
+        if (showPreview) {
+            AndroidView(
+                factory = { WebView(it).apply {
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    webViewClient = WebViewClient()
+                    loadDataWithBaseURL("https://yinnmotion.local/", document, "text/html", "UTF-8", null)
+                } },
+                update = { it.loadDataWithBaseURL("https://yinnmotion.local/", document, "text/html", "UTF-8", null) },
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                listOf("HTML", "CSS", "JavaScript").forEach { FilterChip(selected = tab == it, onClick = { setTab(it) }, label = { Text(it) }) }
+            }
+            Spacer(Modifier.height(10.dp))
+            Surface(color = Color(0xFF101722), shape = RoundedCornerShape(15.dp), modifier = Modifier.weight(1f).fillMaxWidth()) {
+                BasicTextField(value = code, onValueChange = update, modifier = Modifier.fillMaxSize().padding(14.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFFD8E6F6), fontSize = 13.sp, lineHeight = 20.sp),
+                    decorationBox = { inner -> Box { if (code.isEmpty()) Text("Write code here…", color = muted); inner() } })
+            }
         }
     }
 }
-
 
 @Composable
 private fun SettingsScreen(
