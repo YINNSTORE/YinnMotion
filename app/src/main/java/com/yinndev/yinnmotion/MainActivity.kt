@@ -58,8 +58,6 @@ private fun YinnMotionApp(activity: ComponentActivity) {
     var highFps by remember { mutableStateOf(prefs.getBoolean("high_fps", false)) }
     var settingsNotice by remember { mutableStateOf("") }
     var page by remember { mutableStateOf("Home") }
-    var splashVisible by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) { kotlinx.coroutines.delay(1250); splashVisible = false }
 
     LaunchedEffect(appearance, language, highFps) {
         prefs.edit().putString("appearance", appearance).putString("language", language).putBoolean("high_fps", highFps).apply()
@@ -134,18 +132,6 @@ private fun YinnMotionApp(activity: ComponentActivity) {
                     "Code" -> CodeScreen(tab, { tab = it }, html, { html = it }, css, { css = it }, js, { js = it })
                     "Settings" -> SettingsScreen(appearance, { appearance = it }, language, { language = it }, highFps, { highFps = it }, settingsNotice)
                     else -> AboutScreen()
-                }
-            }
-        }
-        if (splashVisible) {
-            val splashScale by animateFloatAsState(if (splashVisible) 1f else 0.8f, animationSpec = tween(700), label = "brandScale")
-            val splashAlpha by animateFloatAsState(if (splashVisible) 1f else 0f, animationSpec = tween(650), label = "brandAlpha")
-            Box(Modifier.fillMaxSize().background(Color(0xFF080E19)), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.scale(splashScale).alpha(splashAlpha)) {
-                    BrandMark(104)
-                    Spacer(Modifier.height(16.dp))
-                    Text("YINNMOTION", color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Black, letterSpacing = 3.sp)
-                    Text("CREATE • MOVE • INSPIRE", color = Color(0xFF82CFFF), fontSize = 10.sp, letterSpacing = 2.sp)
                 }
             }
         }
